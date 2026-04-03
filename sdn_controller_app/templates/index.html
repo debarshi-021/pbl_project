@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SDN Controller Security Dashboard</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+  </head>
+  <body>
+    <main class="app">
+      <h1>SDN Controller Security Dashboard</h1>
+      <p class="subtitle">TPM-Inspired Multi-USB Device Authentication</p>
+
+      <div class="top-bar">
+        <button id="scanBtn">Scan Devices</button>
+        <div id="scanState" class="status waiting">WAITING</div>
+      </div>
+
+      <section class="visualizer">
+        <div class="controller">SDN Controller (Laptop)</div>
+        <div class="pulse-line"></div>
+        <div class="usb-node" id="usbNode">USB Scan Stream</div>
+      </section>
+
+      <table>
+        <thead>
+          <tr>
+            <th>Device ID</th>
+            <th>Path</th>
+            <th>Status</th>
+            <th>Reason</th>
+            <th>Verify Time (ms)</th>
+          </tr>
+        </thead>
+        <tbody id="deviceRows">
+          <tr>
+            <td colspan="5" class="empty">No scans yet.</td>
+          </tr>
+        </tbody>
+      </table>
+    </main>
+
+    <script>
+      const scanBtn = document.getElementById('scanBtn');
+      const rows = document.getElementById('deviceRows');
+      const scanState = document.getElementById('scanState');
+      const usbNode = document.getElementById('usbNode');
+
+      function badge(status) {
+        const lower = status.toLowerCase();
+        return `<span class="status ${lower}">${status}</span>`;
+      }
+
+      function renderTable(data) {
+        if (!Array.isArray(data) || data.length === 0) {
+          rows.innerHTML = '<tr><td colspan="5" class="empty">No mounted devices found under /mnt/d, /mnt/e, /mnt/f.</td></tr>';
+          return;
+        }
+
+        rows.innerHTML = data.map(item => `
+          <tr>
+            <td>${item.device_id ?? 'UNKNOWN'}</td>
+            <td>${item.path}</td>
+            <td>${badge(item.status ?? 'REJECTED')}</td>
+            <td>${item.reason ?? ''}</td>
+            <td>${item.verification_time_ms ?? 0}</td>
+          </tr>
+        `).join('');
+      }
+
+      async function scanDevices() {
+        scanState.textContent = 'SCANNING';
+        scanState.className = 'status waiting';
+        usbNode.classList.add('scanning');
+
+        try {
+          const response = await fetch('/scan');
+          const data = await response.json();
+          renderTable(data);
+
+          const hasAuth = data.some(item => item.status === 'AUTHENTICATED');
+          scanState.textContent = hasAuth ? 'AUTHENTICATED DEVICE DETECTED' : 'SCAN COMPLETE';
+          scanState.className = hasAuth ? 'status authenticated' : 'status rejected';
+        } catch (error) {
+          rows.innerHTML = `<tr><td colspan="5" class="empty">Scan error: ${error}</td></tr>`;
+          scanState.textContent = 'ERROR';
+          scanState.className = 'status rejected';
+        } finally {
+          usbNode.classList.remove('scanning');
+        }
+      }
+
+      scanBtn.addEventListener('click', scanDevices);
+      setInterval(scanDevices, 9000);
+    </script>
+  </body>
+</html>
