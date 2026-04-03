@@ -1,2 +1,0 @@
-device_id=SW-CORE-001
-role=core-switch
