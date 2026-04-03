@@ -1,0 +1,2 @@
+device_id=SW-FAKE-009
+role=rogue-switch
