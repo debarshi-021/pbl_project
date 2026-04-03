@@ -138,3 +138,9 @@ th {
   background: rgba(245, 196, 81, 0.2);
   color: var(--yellow);
 }
+
+
+.status.error {
+  background: rgba(245, 196, 81, 0.2);
+  color: var(--yellow);
+}

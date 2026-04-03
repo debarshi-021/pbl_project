@@ -26,6 +26,34 @@ def index() -> str:
 
 @app.route("/scan")
 def scan() -> Any:
+    print("[SCAN LOOP RUNNING]")
+    devices = scan_usb_devices()
+    results: List[Dict[str, Any]] = []
+
+    for device in devices:
+        path = str(device["path"])
+        print("[DEVICE DETECTED]", path)
+
+        started = time.perf_counter()
+        if bool(device.get("data_exists")) and bool(device.get("sig_exists")):
+            result = verify_device(path)
+        else:
+            result = {
+                "device_id": "UNKNOWN",
+                "status": "REJECTED",
+                "reason": "Missing files",
+            }
+
+        elapsed_ms = round((time.perf_counter() - started) * 1000, 2)
+        response_item = {
+            "path": path,
+            "verification_time_ms": elapsed_ms,
+            **result,
+        }
+        results.append(response_item)
+        print("[RESULT]", response_item)
+
+    return jsonify(results)
     logger.info("[SCAN STARTED]")
     devices = scan_usb_devices()
     output: List[Dict[str, Any]] = []

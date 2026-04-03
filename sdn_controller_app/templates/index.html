@@ -47,6 +47,15 @@
       const usbNode = document.getElementById('usbNode');
 
       function badge(status) {
+        const normalized = String(status || 'REJECTED').toLowerCase();
+        return `<span class="status ${normalized}">${status}</span>`;
+      }
+
+      function updateTable(data) {
+        if (!Array.isArray(data) || data.length === 0) {
+          rows.innerHTML = '<tr><td colspan="5" class="empty">No devices found</td></tr>';
+          scanState.textContent = 'NO DEVICES';
+          scanState.className = 'status waiting';
         const lower = status.toLowerCase();
         return `<span class="status ${lower}">${status}</span>`;
       }
@@ -66,6 +75,33 @@
             <td>${item.verification_time_ms ?? 0}</td>
           </tr>
         `).join('');
+
+        const hasError = data.some(item => item.status === 'ERROR');
+        const hasAuth = data.some(item => item.status === 'AUTHENTICATED');
+
+        if (hasError) {
+          scanState.textContent = 'ERROR DETECTED';
+          scanState.className = 'status error';
+        } else if (hasAuth) {
+          scanState.textContent = 'AUTHENTICATED DEVICE DETECTED';
+          scanState.className = 'status authenticated';
+        } else {
+          scanState.textContent = 'SCAN COMPLETE';
+          scanState.className = 'status rejected';
+        }
+      }
+
+      async function scanDevices() {
+        usbNode.classList.add('scanning');
+
+        try {
+          const res = await fetch('/scan');
+          const data = await res.json();
+          updateTable(data);
+        } catch (error) {
+          rows.innerHTML = `<tr><td colspan="5" class="empty">Scan error: ${error}</td></tr>`;
+          scanState.textContent = 'ERROR';
+          scanState.className = 'status error';
       }
 
       async function scanDevices() {
@@ -91,6 +127,10 @@
       }
 
       scanBtn.addEventListener('click', scanDevices);
+
+      setInterval(async () => {
+        await scanDevices();
+      }, 2000);
       setInterval(scanDevices, 9000);
     </script>
   </body>
