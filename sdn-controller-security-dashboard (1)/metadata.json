@@ -1,0 +1,5 @@
+{
+  "name": "SDN Controller Security Dashboard",
+  "description": "Real-time TPM-inspired USB authentication system for SDN controller security.",
+  "requestFramePermissions": []
+}
